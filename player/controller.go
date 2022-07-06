@@ -32,6 +32,15 @@ func (c *Controller) Update(tileMap *tilemap.TileMap) error {
 	if c.up {
 		c.player.MoveEntitiesUp(tileMap)
 	}
+	if c.down {
+		c.player.MoveEntitiesDown(tileMap)
+	}
+	if c.left {
+		c.player.MoveEntitiesLeft(tileMap)
+	}
+	if c.right {
+		c.player.MoveEntitiesRight(tileMap)
+	}
 
 	return nil
 }

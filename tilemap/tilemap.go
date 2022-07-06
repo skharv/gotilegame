@@ -123,29 +123,29 @@ func (t *TileMap) GetTileOccupant(X, Y int) (*entities.Object, bool) {
 }
 
 func (t *TileMap) GetNorthOf(tile *Tile) *Tile {
-	X := Clamp(tile.mapIndex.X, 0, mapSizeX)
-	Y := Clamp(tile.mapIndex.Y-1, 0, mapSizeY)
+	X := Clamp(tile.mapIndex.X, 0, mapSizeX-1)
+	Y := Clamp(tile.mapIndex.Y-1, 0, mapSizeY-1)
 
 	return t.tiles[X][Y]
 }
 
 func (t *TileMap) GetSouthOf(tile *Tile) *Tile {
-	X := Clamp(tile.mapIndex.X, 0, mapSizeX)
-	Y := Clamp(tile.mapIndex.Y+1, 0, mapSizeY)
+	X := Clamp(tile.mapIndex.X, 0, mapSizeX-1)
+	Y := Clamp(tile.mapIndex.Y+1, 0, mapSizeY-1)
 
 	return t.tiles[X][Y]
 }
 
 func (t *TileMap) GetEastOf(tile *Tile) *Tile {
-	X := Clamp(tile.mapIndex.X+1, 0, mapSizeX)
-	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY)
+	X := Clamp(tile.mapIndex.X+1, 0, mapSizeX-1)
+	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY-1)
 
 	return t.tiles[X][Y]
 }
 
 func (t *TileMap) GetWestOf(tile *Tile) *Tile {
-	X := Clamp(tile.mapIndex.X-1, 0, mapSizeX)
-	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY)
+	X := Clamp(tile.mapIndex.X-1, 0, mapSizeX-1)
+	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY-1)
 
 	return t.tiles[X][Y]
 }

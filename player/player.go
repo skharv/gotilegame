@@ -33,12 +33,60 @@ func (p *Player) CreateObject(id int, tile *tilemap.Tile) (*entities.Object, boo
 
 func (p *Player) MoveEntitiesUp(tileMap *tilemap.TileMap) {
 	for _, unit := range p.units {
+
 		currentTile := tileMap.ObjectToTile(unit)
 		newTile := tileMap.GetNorthOf(currentTile)
 
-		currentTile.SetObject(nil)
-		newTile.SetObject(unit)
+		if !newTile.IsOccupied() {
+			currentTile.SetObject(nil)
+			newTile.SetObject(unit)
 
-		unit.SetPosition(newTile.GetPosition())
+			unit.SetPosition(newTile.GetPosition())
+		}
+	}
+}
+
+func (p *Player) MoveEntitiesDown(tileMap *tilemap.TileMap) {
+	for _, unit := range p.units {
+
+		currentTile := tileMap.ObjectToTile(unit)
+		newTile := tileMap.GetSouthOf(currentTile)
+
+		if !newTile.IsOccupied() {
+			currentTile.SetObject(nil)
+			newTile.SetObject(unit)
+
+			unit.SetPosition(newTile.GetPosition())
+		}
+	}
+}
+
+func (p *Player) MoveEntitiesLeft(tileMap *tilemap.TileMap) {
+	for _, unit := range p.units {
+
+		currentTile := tileMap.ObjectToTile(unit)
+		newTile := tileMap.GetWestOf(currentTile)
+
+		if !newTile.IsOccupied() {
+			currentTile.SetObject(nil)
+			newTile.SetObject(unit)
+
+			unit.SetPosition(newTile.GetPosition())
+		}
+	}
+}
+
+func (p *Player) MoveEntitiesRight(tileMap *tilemap.TileMap) {
+	for _, unit := range p.units {
+
+		currentTile := tileMap.ObjectToTile(unit)
+		newTile := tileMap.GetEastOf(currentTile)
+
+		if !newTile.IsOccupied() {
+			currentTile.SetObject(nil)
+			newTile.SetObject(unit)
+
+			unit.SetPosition(newTile.GetPosition())
+		}
 	}
 }
