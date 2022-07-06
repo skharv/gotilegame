@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/skharv/tilegame/geom"
 	"github.com/skharv/tilegame/resources"
 	"github.com/skharv/tilegame/tilemap"
@@ -25,13 +26,13 @@ func (c *Cursor) Init() {
 
 func (c *Cursor) ReadInputs() {
 	c.cursorPos.X, c.cursorPos.Y = ebiten.CursorPosition()
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		c.clicked = true
 	} else {
 		c.clicked = false
 	}
 
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
 		c.altClicked = true
 	} else {
 		c.altClicked = false

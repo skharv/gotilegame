@@ -38,5 +38,7 @@ func (m *Manager) Draw(screen *ebiten.Image) {
 }
 
 func (m *Manager) Register(e Entity) {
-	m.ents = append(m.ents, e)
+	if e != nil {
+		m.ents = append(m.ents, e)
+	}
 }

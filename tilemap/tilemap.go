@@ -73,9 +73,36 @@ func (t *TileMap) WorldToTileWorldPos(X, Y int) (int, int, bool) {
 	return -1, -1, false
 }
 
+func (t *TileMap) WorldToTile(X, Y int) *Tile {
+	i, j, _ := t.WorldToTilePos(X, Y)
+	i = Clamp(i, 0, mapSizeX)
+	j = Clamp(j, 0, mapSizeY)
+
+	return t.tiles[i][j]
+}
+
+func (t *TileMap) MapIndexToTile(X, Y int) *Tile {
+	X = Clamp(X, 0, mapSizeX)
+	Y = Clamp(Y, 0, mapSizeY)
+
+	return t.tiles[X][Y]
+}
+
+func (t *TileMap) ObjectToTile(obj *entities.Object) *Tile {
+	for i := 0; i < mapSizeX; i++ {
+		for j := 0; j < mapSizeY; j++ {
+			if t.tiles[i][j].GetObject() == obj {
+				return t.tiles[i][j]
+			}
+		}
+	}
+
+	return nil
+}
+
 func (t *TileMap) IsTileOccupied(X, Y int) bool {
-	Clamp(&X, 0, mapSizeX)
-	Clamp(&Y, 0, mapSizeY)
+	X = Clamp(X, 0, mapSizeX)
+	Y = Clamp(Y, 0, mapSizeY)
 
 	return t.tiles[X][Y].IsOccupied()
 }
@@ -89,17 +116,48 @@ func (t *TileMap) SetTileOccupant(obj *entities.Object) {
 }
 
 func (t *TileMap) GetTileOccupant(X, Y int) (*entities.Object, bool) {
-	Clamp(&X, 0, mapSizeX)
-	Clamp(&Y, 0, mapSizeY)
+	X = Clamp(X, 0, mapSizeX)
+	Y = Clamp(Y, 0, mapSizeY)
 
 	return t.tiles[X][Y].GetObject(), true
 }
 
-func Clamp[T int | float64](Value *T, Min, Max T) {
-	compare := *Value
-	if compare < Min {
-		Value = &Min
-	} else if compare > Max {
-		Value = &Max
+func (t *TileMap) GetNorthOf(tile *Tile) *Tile {
+	X := Clamp(tile.mapIndex.X, 0, mapSizeX)
+	Y := Clamp(tile.mapIndex.Y-1, 0, mapSizeY)
+
+	return t.tiles[X][Y]
+}
+
+func (t *TileMap) GetSouthOf(tile *Tile) *Tile {
+	X := Clamp(tile.mapIndex.X, 0, mapSizeX)
+	Y := Clamp(tile.mapIndex.Y+1, 0, mapSizeY)
+
+	return t.tiles[X][Y]
+}
+
+func (t *TileMap) GetEastOf(tile *Tile) *Tile {
+	X := Clamp(tile.mapIndex.X+1, 0, mapSizeX)
+	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY)
+
+	return t.tiles[X][Y]
+}
+
+func (t *TileMap) GetWestOf(tile *Tile) *Tile {
+	X := Clamp(tile.mapIndex.X-1, 0, mapSizeX)
+	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY)
+
+	return t.tiles[X][Y]
+}
+
+//Universal Functions
+func Clamp[T int | float64](Value, Min, Max T) T {
+	value := Value
+	if value < Min {
+		value = Min
+	} else if value > Max {
+		value = Max
 	}
+
+	return value
 }
