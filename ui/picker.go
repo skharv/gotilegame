@@ -23,6 +23,7 @@ type Picker struct {
 	visible         bool
 	clicked         bool
 	altClicked      bool
+	selectedIcon    *Icon
 }
 
 func (p *Picker) Init() {
@@ -34,7 +35,7 @@ func (p *Picker) Init() {
 
 	for i, v := range p.icons {
 		v.position.Y = p.position.Y
-		v.position.X = p.position.X + float64(v.sprite.Bounds().Dx()*i)
+		v.position.X = p.position.X + float64((v.sprite.Bounds().Dx()+1)*i)
 	}
 }
 
@@ -61,11 +62,13 @@ func (p *Picker) Update() error {
 				p.visible = true
 				p.selecionPos.X = i.position.X
 				p.selecionPos.Y = i.position.Y
+				p.selectedIcon = i
 				noneClicked = false
 			}
 		}
 		if noneClicked {
 			p.visible = false
+			p.selectedIcon = nil
 		}
 
 	}
@@ -84,6 +87,14 @@ func (p *Picker) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(p.selecionPos.X, p.selecionPos.Y)
 		screen.DrawImage(p.selectionSprite, op)
 	}
+}
+
+func (p *Picker) GetSelectedAction() string {
+	if p.selectedIcon == nil {
+		return ""
+	}
+
+	return p.selectedIcon.title
 }
 
 func (p *Picker) GetRect(icon *Icon) (X, Y, W, H float64) {
