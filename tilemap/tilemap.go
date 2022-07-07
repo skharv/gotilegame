@@ -48,9 +48,42 @@ func (t *TileMap) Init() {
 }
 
 func (t *TileMap) Update() {
+	for i := 0; i < mapSizeX; i++ {
+		for j := 0; j < mapSizeY; j++ {
+			t.tiles[i][j].Update()
+			if t.tiles[i][j].JustOccupied() {
+				t.upcomingActions = append(t.upcomingActions, t.tiles[i][j].GetObject())
+				t.resolved = false
+			}
+		}
+	}
+
 	if !t.resolved {
 		t.resolved = t.ResolveActions(t.upcomingActions...)
 	}
+
+	if t.AnyTileAwaiting() {
+		t.resolved = false
+	}
+}
+
+func (t *TileMap) Draw(screen *ebiten.Image) {
+	for i := 0; i < mapSizeX; i++ {
+		for j := 0; j < mapSizeY; j++ {
+			t.tiles[i][j].Draw(screen)
+		}
+	}
+}
+
+func (t *TileMap) AnyTileAwaiting() bool {
+	for i := 0; i < mapSizeX; i++ {
+		for j := 0; j < mapSizeY; j++ {
+			if t.tiles[i][j].GetState() == Awaiting {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (t *TileMap) SetAction(obj *entities.Object) {
@@ -121,19 +154,11 @@ func (t *TileMap) MoveEntity(tile *Tile, direction Direction) *entities.Object {
 		if !newTile.IsOccupied() {
 			tile.SetObject(nil)
 			newTile.SetObject(unit)
-			unit.SetPosition(newTile.GetPosition())
+			unit.SetTargetPos(newTile.GetPosition())
 			return unit
 		}
 	}
 	return nil
-}
-
-func (t *TileMap) Draw(screen *ebiten.Image) {
-	for i := 0; i < mapSizeX; i++ {
-		for j := 0; j < mapSizeY; j++ {
-			t.tiles[i][j].Draw(screen)
-		}
-	}
 }
 
 func (t *TileMap) WorldToTilePos(X, Y int) (int, int, bool) {
