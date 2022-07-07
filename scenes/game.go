@@ -11,14 +11,24 @@ import (
 	"github.com/skharv/tilegame/tilemap"
 )
 
+type PlayState int
+
 type Game struct {
 	tileMap       *tilemap.TileMap
 	entityManager *entities.Manager
 	player        *player.Player
 	random        *rand.Rand
+	currentState  PlayState
 }
 
+const (
+	playerInput   PlayState = 0
+	resolveAction PlayState = 1
+)
+
 func (s *Game) Init() {
+	s.currentState = playerInput
+
 	s.entityManager = &entities.Manager{}
 	s.entityManager.Init()
 
@@ -33,12 +43,28 @@ func (s *Game) Init() {
 }
 
 func (s *Game) ReadInput() {
-	s.player.ReadInputs()
+	switch s.currentState {
+	case playerInput:
+		s.player.ReadInputs()
+	case resolveAction:
+	}
 }
 
 func (s *Game) Update(state *GameState, deltaTime float64) error {
-	s.tileMap.Update()
-	s.player.Update(s.tileMap, s.entityManager)
+	switch s.currentState {
+	case playerInput:
+		s.player.Update(s.tileMap, s.entityManager)
+		if !s.player.IsReady() {
+			s.tileMap.SetAction(s.player.GetLastPlayed())
+			s.currentState = resolveAction
+		}
+	case resolveAction:
+		s.tileMap.Update()
+		if s.tileMap.IsResolved() {
+			s.player.GetReady()
+			s.currentState = playerInput
+		}
+	}
 	s.entityManager.Update()
 
 	return nil

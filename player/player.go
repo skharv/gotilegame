@@ -12,6 +12,7 @@ type Player struct {
 	cursor     *ui.Cursor
 	picker     *ui.Picker
 	controller *Controller
+	ready      bool
 }
 
 func (p *Player) Init() {
@@ -23,6 +24,8 @@ func (p *Player) Init() {
 
 	p.controller = &Controller{}
 	p.controller.Init(p)
+
+	p.ready = true
 }
 
 func (p *Player) ReadInputs() {
@@ -42,12 +45,14 @@ func (p *Player) Update(tileMap *tilemap.TileMap, entityManager *entities.Manage
 			obj, register := p.CreateObject(0, tileMap.WorldToTile(int(i), int(j)))
 			if register {
 				entityManager.Register(obj)
+				p.ready = false
 			}
 		}
 		if p.picker.GetSelectedAction() == "BlueUnit" {
 			obj, register := p.CreateObject(1, tileMap.WorldToTile(int(i), int(j)))
 			if register {
 				entityManager.Register(obj)
+				p.ready = false
 			}
 		}
 	}
@@ -81,62 +86,14 @@ func (p *Player) CreateObject(id int, tile *tilemap.Tile) (*entities.Object, boo
 	return obj, true
 }
 
-func (p *Player) MoveEntitiesUp(tileMap *tilemap.TileMap) {
-	for _, unit := range p.units {
-
-		currentTile := tileMap.ObjectToTile(unit)
-		newTile := tileMap.GetNorthOf(currentTile)
-
-		if !newTile.IsOccupied() {
-			currentTile.SetObject(nil)
-			newTile.SetObject(unit)
-
-			unit.SetPosition(newTile.GetPosition())
-		}
-	}
+func (p *Player) GetLastPlayed() *entities.Object {
+	return p.units[len(p.units)-1]
 }
 
-func (p *Player) MoveEntitiesDown(tileMap *tilemap.TileMap) {
-	for _, unit := range p.units {
-
-		currentTile := tileMap.ObjectToTile(unit)
-		newTile := tileMap.GetSouthOf(currentTile)
-
-		if !newTile.IsOccupied() {
-			currentTile.SetObject(nil)
-			newTile.SetObject(unit)
-
-			unit.SetPosition(newTile.GetPosition())
-		}
-	}
+func (p *Player) IsReady() bool {
+	return p.ready
 }
 
-func (p *Player) MoveEntitiesLeft(tileMap *tilemap.TileMap) {
-	for _, unit := range p.units {
-
-		currentTile := tileMap.ObjectToTile(unit)
-		newTile := tileMap.GetWestOf(currentTile)
-
-		if !newTile.IsOccupied() {
-			currentTile.SetObject(nil)
-			newTile.SetObject(unit)
-
-			unit.SetPosition(newTile.GetPosition())
-		}
-	}
-}
-
-func (p *Player) MoveEntitiesRight(tileMap *tilemap.TileMap) {
-	for _, unit := range p.units {
-
-		currentTile := tileMap.ObjectToTile(unit)
-		newTile := tileMap.GetEastOf(currentTile)
-
-		if !newTile.IsOccupied() {
-			currentTile.SetObject(nil)
-			newTile.SetObject(unit)
-
-			unit.SetPosition(newTile.GetPosition())
-		}
-	}
+func (p *Player) GetReady() {
+	p.ready = true
 }

@@ -8,15 +8,24 @@ import (
 	"github.com/skharv/tilegame/resources"
 )
 
+type Direction int
+
 type TileMap struct {
-	position geom.Vector2[float64]
-	tiles    [mapSizeX][mapSizeY]*Tile
+	position        geom.Vector2[float64]
+	tiles           [mapSizeX][mapSizeY]*Tile
+	upcomingActions []*entities.Object
+	resolved        bool
 }
 
 const (
 	mapSizeX = 10
 	mapSizeY = 10
 	tileOffset
+
+	North Direction = 0
+	South Direction = 1
+	East  Direction = 2
+	West  Direction = 3
 )
 
 func (t *TileMap) Init() {
@@ -35,9 +44,87 @@ func (t *TileMap) Init() {
 			}
 		}
 	}
+	t.resolved = true
 }
 
-func (t *TileMap) Update() error {
+func (t *TileMap) Update() {
+	if !t.resolved {
+		t.resolved = t.ResolveActions(t.upcomingActions...)
+	}
+}
+
+func (t *TileMap) SetAction(obj *entities.Object) {
+	t.resolved = false
+	t.upcomingActions = nil
+	t.upcomingActions = append(t.upcomingActions, obj)
+}
+
+func (t *TileMap) ResolveActions(actions ...*entities.Object) bool {
+	var nextActions []*entities.Object
+
+	for _, o := range actions {
+		tile := t.ObjectToTile(o)
+		nextActions = append(nextActions, t.ResolveTile(tile)...)
+	}
+
+	t.upcomingActions = nextActions
+
+	return len(t.upcomingActions) == 0
+}
+
+func (t *TileMap) ResolveTile(tile *Tile) []*entities.Object {
+	var entities []*entities.Object
+	north := t.GetNorthOf(tile)
+	south := t.GetSouthOf(tile)
+	east := t.GetEastOf(tile)
+	west := t.GetWestOf(tile)
+
+	if t.SamePolarity(tile, north) {
+		entities = append(entities, t.MoveEntity(north, North))
+	}
+	if t.SamePolarity(tile, south) {
+		entities = append(entities, t.MoveEntity(south, South))
+	}
+	if t.SamePolarity(tile, east) {
+		entities = append(entities, t.MoveEntity(east, East))
+	}
+	if t.SamePolarity(tile, west) {
+		entities = append(entities, t.MoveEntity(west, West))
+	}
+
+	return entities
+}
+
+func (t *TileMap) SamePolarity(tileA, tileB *Tile) bool {
+	if tileA.IsOccupied() && tileB.IsOccupied() {
+		return tileA.GetObject().GetPolarity() == tileB.GetObject().GetPolarity()
+	}
+	return false
+}
+
+func (t *TileMap) MoveEntity(tile *Tile, direction Direction) *entities.Object {
+	if tile.IsOccupied() {
+		newTile := &Tile{}
+		unit := tile.GetObject()
+
+		switch direction {
+		case North:
+			newTile = t.GetNorthOf(tile)
+		case South:
+			newTile = t.GetSouthOf(tile)
+		case East:
+			newTile = t.GetEastOf(tile)
+		case West:
+			newTile = t.GetWestOf(tile)
+		}
+
+		if !newTile.IsOccupied() {
+			tile.SetObject(nil)
+			newTile.SetObject(unit)
+			unit.SetPosition(newTile.GetPosition())
+			return unit
+		}
+	}
 	return nil
 }
 
@@ -148,6 +235,10 @@ func (t *TileMap) GetWestOf(tile *Tile) *Tile {
 	Y := Clamp(tile.mapIndex.Y, 0, mapSizeY-1)
 
 	return t.tiles[X][Y]
+}
+
+func (t *TileMap) IsResolved() bool {
+	return t.resolved
 }
 
 //Universal Functions
