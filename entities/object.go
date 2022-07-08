@@ -52,6 +52,7 @@ func (o *Object) Update() error {
 		o.shake = false
 	} else {
 		o.worldPos.Lerp(o.targetPos, step)
+		o.state = InTransit
 		o.shake = true
 	}
 

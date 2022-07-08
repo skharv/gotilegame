@@ -96,11 +96,37 @@ func (t *TileMap) ResolveActions(actions ...*entities.Object) bool {
 	var nextActions []*entities.Object
 
 	for _, o := range actions {
-		tile := t.ObjectToTile(o)
+		j := 0
+		for i, u := range t.upcomingActions {
+			if o == u {
+				if j == len(t.upcomingActions)-1 {
+					t.upcomingActions = t.upcomingActions[:len(t.upcomingActions)-1]
+					j--
+				} else {
+					t.upcomingActions = append(t.upcomingActions[:i], t.upcomingActions[i+1:]...)
+					j--
+				}
+			}
+			j++
+		}
+
+		var tile *Tile
+		if o == nil {
+			continue
+		}
+
+		if o.GetState() != entities.InTransit {
+			tile = t.ObjectToTile(o)
+		}
+
+		if tile == nil {
+			continue
+		}
+
 		nextActions = append(nextActions, t.ResolveTile(tile)...)
 	}
 
-	t.upcomingActions = nextActions
+	t.upcomingActions = append(t.upcomingActions, nextActions...)
 
 	return len(t.upcomingActions) == 0
 }
