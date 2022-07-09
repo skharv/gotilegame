@@ -70,12 +70,13 @@ func (p *Player) CreateObject(id int, tile *tilemap.Tile) (*entities.Object, boo
 
 	obj := &entities.Object{}
 	obj.Init()
-	obj.SetPolarity(id)
 	switch id {
 	case 0:
 		obj.SetSprite("images/redunit.png")
+		obj.SetData("red", 6, 3, id)
 	case 1:
 		obj.SetSprite("images/blueunit.png")
+		obj.SetData("blue", 7, 3, id)
 	}
 
 	obj.SetPosition(tile.GetPosition())

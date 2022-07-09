@@ -10,11 +10,17 @@ import (
 
 type Direction int
 
+type CombatPair struct {
+	objectA *entities.Object
+	objectB *entities.Object
+}
+
 type TileMap struct {
-	position        geom.Vector2[float64]
-	tiles           [mapSizeX][mapSizeY]*Tile
-	upcomingActions []*entities.Object
-	resolved        bool
+	position      geom.Vector2[float64]
+	tiles         [mapSizeX][mapSizeY]*Tile
+	pushActions   []*entities.Object
+	combatActions []*CombatPair
+	resolved      bool
 }
 
 const (
@@ -41,6 +47,7 @@ func (t *TileMap) Init() {
 				originPos: geom.Vector2[float64]{X: tileSizeX / 2, Y: tileSizeY / 2},
 				sprite:    img,
 				color:     &ebiten.ColorM{},
+				register:  t.AddToUpcoming,
 			}
 		}
 	}
@@ -51,15 +58,12 @@ func (t *TileMap) Update() {
 	for i := 0; i < mapSizeX; i++ {
 		for j := 0; j < mapSizeY; j++ {
 			t.tiles[i][j].Update()
-			if t.tiles[i][j].JustOccupied() {
-				t.upcomingActions = append(t.upcomingActions, t.tiles[i][j].GetObject())
-				t.resolved = false
-			}
 		}
 	}
 
 	if !t.resolved {
-		t.resolved = t.ResolveActions(t.upcomingActions...)
+		t.resolved = t.ResolveActions(t.pushActions...)
+		t.resolved = t.ResolveCombat(t.combatActions...)
 	}
 
 	if t.AnyTileAwaiting() {
@@ -75,6 +79,11 @@ func (t *TileMap) Draw(screen *ebiten.Image) {
 	}
 }
 
+func (t *TileMap) AddToUpcoming(obj *entities.Object) {
+	t.pushActions = append(t.pushActions, obj)
+	t.resolved = false
+}
+
 func (t *TileMap) AnyTileAwaiting() bool {
 	for i := 0; i < mapSizeX; i++ {
 		for j := 0; j < mapSizeY; j++ {
@@ -88,27 +97,58 @@ func (t *TileMap) AnyTileAwaiting() bool {
 
 func (t *TileMap) SetAction(obj *entities.Object) {
 	t.resolved = false
-	t.upcomingActions = nil
-	t.upcomingActions = append(t.upcomingActions, obj)
+	t.pushActions = nil
+	t.pushActions = append(t.pushActions, obj)
+}
+
+func (t *TileMap) RemoveAction(obj *entities.Object) {
+	if len(t.pushActions) <= 1 {
+		t.pushActions = t.pushActions[:len(t.pushActions)-1]
+	} else {
+		length := len(t.pushActions)
+		lastIndex := length - 1
+
+		for i, a := range t.pushActions {
+			if a == obj {
+				if i != lastIndex {
+					t.pushActions[i] = t.pushActions[lastIndex]
+				}
+				t.pushActions = t.pushActions[:lastIndex]
+				break
+			}
+		}
+	}
+}
+
+func (t *TileMap) ResolveCombat(combat ...*CombatPair) bool {
+	var nextCombat []*CombatPair
+
+	for _, c := range combat {
+		c.objectA.TakeDamage(c.objectB.GetAttackDamage())
+		c.objectB.TakeDamage(c.objectA.GetAttackDamage())
+		if c.objectA.GetState() != entities.Dying && c.objectB.GetState() != entities.Dying {
+			nextCombat = append(nextCombat, c)
+		}
+
+		if c.objectA.GetState() == entities.Dying {
+			t.ObjectToTile(c.objectA).SetObject(nil)
+		}
+
+		if c.objectB.GetState() == entities.Dying {
+			t.ObjectToTile(c.objectB).SetObject(nil)
+		}
+	}
+
+	t.combatActions = nextCombat
+
+	return len(t.combatActions) == 0
 }
 
 func (t *TileMap) ResolveActions(actions ...*entities.Object) bool {
 	var nextActions []*entities.Object
 
 	for _, o := range actions {
-		j := 0
-		for i, u := range t.upcomingActions {
-			if o == u {
-				if j == len(t.upcomingActions)-1 {
-					t.upcomingActions = t.upcomingActions[:len(t.upcomingActions)-1]
-					j--
-				} else {
-					t.upcomingActions = append(t.upcomingActions[:i], t.upcomingActions[i+1:]...)
-					j--
-				}
-			}
-			j++
-		}
+		t.RemoveAction(o)
 
 		var tile *Tile
 		if o == nil {
@@ -126,9 +166,9 @@ func (t *TileMap) ResolveActions(actions ...*entities.Object) bool {
 		nextActions = append(nextActions, t.ResolveTile(tile)...)
 	}
 
-	t.upcomingActions = append(t.upcomingActions, nextActions...)
+	t.pushActions = append(t.pushActions, nextActions...)
 
-	return len(t.upcomingActions) == 0
+	return len(t.pushActions) == 0
 }
 
 func (t *TileMap) ResolveTile(tile *Tile) []*entities.Object {
@@ -138,27 +178,48 @@ func (t *TileMap) ResolveTile(tile *Tile) []*entities.Object {
 	east := t.GetEastOf(tile)
 	west := t.GetWestOf(tile)
 
-	if t.SamePolarity(tile, north) {
-		entities = append(entities, t.MoveEntity(north, North))
+	if t.BothOccupied(tile, north) {
+		if t.SamePolarity(tile, north) {
+			entities = append(entities, t.MoveEntity(north, North))
+		} else {
+			t.CreateCombat(tile, north)
+		}
 	}
-	if t.SamePolarity(tile, south) {
-		entities = append(entities, t.MoveEntity(south, South))
+	if t.BothOccupied(tile, south) {
+		if t.SamePolarity(tile, south) {
+			entities = append(entities, t.MoveEntity(south, South))
+		} else {
+			t.CreateCombat(tile, south)
+		}
 	}
-	if t.SamePolarity(tile, east) {
-		entities = append(entities, t.MoveEntity(east, East))
+	if t.BothOccupied(tile, east) {
+		if t.SamePolarity(tile, east) {
+			entities = append(entities, t.MoveEntity(east, East))
+		} else {
+			t.CreateCombat(tile, east)
+		}
 	}
-	if t.SamePolarity(tile, west) {
-		entities = append(entities, t.MoveEntity(west, West))
+	if t.BothOccupied(tile, west) {
+		if t.SamePolarity(tile, west) {
+			entities = append(entities, t.MoveEntity(west, West))
+		} else {
+			t.CreateCombat(tile, west)
+		}
 	}
 
 	return entities
 }
 
+func (t *TileMap) BothOccupied(tileA, tileB *Tile) bool {
+	return tileA.IsOccupied() && tileB.IsOccupied()
+}
+
 func (t *TileMap) SamePolarity(tileA, tileB *Tile) bool {
-	if tileA.IsOccupied() && tileB.IsOccupied() {
-		return tileA.GetObject().GetPolarity() == tileB.GetObject().GetPolarity()
-	}
-	return false
+	return tileA.GetObject().GetPolarity() == tileB.GetObject().GetPolarity()
+}
+
+func (t *TileMap) CreateCombat(tileA, tileB *Tile) {
+	t.combatActions = append(t.combatActions, &CombatPair{objectA: tileA.GetObject(), objectB: tileB.GetObject()})
 }
 
 func (t *TileMap) MoveEntity(tile *Tile, direction Direction) *entities.Object {
@@ -177,7 +238,7 @@ func (t *TileMap) MoveEntity(tile *Tile, direction Direction) *entities.Object {
 			newTile = t.GetWestOf(tile)
 		}
 
-		if !newTile.IsOccupied() {
+		if newTile.GetState() == Unoccupied {
 			tile.SetObject(nil)
 			newTile.SetObject(unit)
 			unit.SetTargetPos(newTile.GetPosition())
@@ -236,13 +297,6 @@ func (t *TileMap) ObjectToTile(obj *entities.Object) *Tile {
 	}
 
 	return nil
-}
-
-func (t *TileMap) IsTileOccupied(X, Y int) bool {
-	X = Clamp(X, 0, mapSizeX)
-	Y = Clamp(Y, 0, mapSizeY)
-
-	return t.tiles[X][Y].IsOccupied()
 }
 
 func (t *TileMap) SetTileOccupant(obj *entities.Object) {

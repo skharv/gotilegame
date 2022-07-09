@@ -51,11 +51,11 @@ func (s *Game) ReadInput() {
 }
 
 func (s *Game) Update(state *GameState, deltaTime float64) error {
+	s.entityManager.Update()
 	switch s.currentState {
 	case playerInput:
 		s.player.Update(s.tileMap, s.entityManager)
 		if !s.player.IsReady() {
-			s.tileMap.SetAction(s.player.GetLastPlayed())
 			s.currentState = resolveAction
 		}
 	case resolveAction:
@@ -65,7 +65,7 @@ func (s *Game) Update(state *GameState, deltaTime float64) error {
 			s.currentState = playerInput
 		}
 	}
-	s.entityManager.Update()
+	s.entityManager.RemoveDead()
 
 	return nil
 }

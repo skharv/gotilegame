@@ -10,14 +10,14 @@ import (
 type TileState int
 
 type Tile struct {
-	mapIndex     geom.Vector2[int]
-	worldPos     geom.Vector2[float64]
-	originPos    geom.Vector2[float64]
-	state        TileState
-	object       *entities.Object
-	sprite       *ebiten.Image
-	color        *ebiten.ColorM
-	justOccupied bool
+	mapIndex  geom.Vector2[int]
+	worldPos  geom.Vector2[float64]
+	originPos geom.Vector2[float64]
+	state     TileState
+	object    *entities.Object
+	sprite    *ebiten.Image
+	color     *ebiten.ColorM
+	register  func(obj *entities.Object)
 }
 
 const (
@@ -40,11 +40,11 @@ func (t *Tile) GetDrawLayer() int {
 }
 
 func (t *Tile) Update() error {
-	t.justOccupied = false
 	if t.object != nil {
 		if t.worldPos.DistanceTo(t.object.GetWorldPos()) < snapDistance {
 			if t.state == Awaiting {
-				t.justOccupied = true
+				t.register(t.object)
+				t.object.SetState(entities.Idle)
 			}
 			t.state = Occupied
 		} else {
@@ -94,10 +94,6 @@ func (t *Tile) GetPosition() (float64, float64) {
 
 func (t *Tile) IsOccupied() bool {
 	return t.state == Occupied
-}
-
-func (t *Tile) JustOccupied() bool {
-	return t.justOccupied
 }
 
 func (t *Tile) GetState() TileState {

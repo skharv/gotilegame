@@ -4,6 +4,7 @@ import (
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/skharv/tilegame/data"
 	"github.com/skharv/tilegame/geom"
 	"github.com/skharv/tilegame/resources"
 )
@@ -16,6 +17,7 @@ type Object struct {
 	originPos geom.Vector2[float64]
 	sprite    *ebiten.Image
 	color     *ebiten.ColorM
+	data      *data.Unit
 	state     ObjectState
 	polarity  int
 	shake     bool
@@ -28,6 +30,7 @@ const (
 
 	Idle      ObjectState = 0
 	InTransit ObjectState = 1
+	Dying     ObjectState = 2
 )
 
 func (o *Object) Init() {
@@ -46,14 +49,16 @@ func (o *Object) GetDrawLayer() int {
 }
 
 func (o *Object) Update() error {
-	if o.worldPos.DistanceTo(o.targetPos) < snapDistance {
-		o.worldPos = o.targetPos
-		o.state = Idle
-		o.shake = false
-	} else {
-		o.worldPos.Lerp(o.targetPos, step)
-		o.state = InTransit
-		o.shake = true
+	if o.state != Dying {
+		if o.worldPos.DistanceTo(o.targetPos) < snapDistance {
+			o.worldPos = o.targetPos
+			o.state = Idle
+			o.shake = false
+		} else {
+			o.worldPos.Lerp(o.targetPos, step)
+			o.state = InTransit
+			o.shake = true
+		}
 	}
 
 	return nil
@@ -90,11 +95,30 @@ func (o *Object) SetSprite(imageFilepath string) {
 }
 
 func (o *Object) SetPolarity(i int) {
-	o.polarity = i
+	o.data.Polarity = i
+}
+
+func (o *Object) SetState(state ObjectState) {
+	o.state = state
+}
+
+func (o *Object) SetData(name string, hitpoints, attack, polarity int) {
+	o.data = &data.Unit{Name: name, HitPoints: hitpoints, Attack: attack, Polarity: polarity}
+}
+
+func (o *Object) GetAttackDamage() int {
+	return o.data.Attack
+}
+
+func (o *Object) TakeDamage(attackDamage int) {
+	o.data.HitPoints -= attackDamage
+	if o.data.HitPoints <= 0 {
+		o.state = Dying
+	}
 }
 
 func (o *Object) GetPolarity() int {
-	return o.polarity
+	return o.data.Polarity
 }
 
 func (o *Object) GetState() ObjectState {
@@ -103,4 +127,8 @@ func (o *Object) GetState() ObjectState {
 
 func (o *Object) GetWorldPos() geom.Vector2[float64] {
 	return o.worldPos
+}
+
+func (o *Object) IsAlive() bool {
+	return o.state != Dying
 }
