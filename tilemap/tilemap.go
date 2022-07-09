@@ -124,6 +124,15 @@ func (t *TileMap) ResolveCombat(combat ...*CombatPair) bool {
 	var nextCombat []*CombatPair
 
 	for _, c := range combat {
+		if c.objectA == nil || c.objectA.GetState() == entities.Dying {
+			continue
+		} else if c.objectB == nil || c.objectB.GetState() == entities.Dying {
+			continue
+		}
+
+		tileA := t.ObjectToTile(c.objectA)
+		tileB := t.ObjectToTile(c.objectB)
+
 		c.objectA.TakeDamage(c.objectB.GetAttackDamage())
 		c.objectB.TakeDamage(c.objectA.GetAttackDamage())
 		if c.objectA.GetState() != entities.Dying && c.objectB.GetState() != entities.Dying {
@@ -131,11 +140,17 @@ func (t *TileMap) ResolveCombat(combat ...*CombatPair) bool {
 		}
 
 		if c.objectA.GetState() == entities.Dying {
-			t.ObjectToTile(c.objectA).SetObject(nil)
+			tileA.SetObject(nil)
+			if c.objectB.GetState() != entities.Dying {
+				t.MoveEntityFromTileToTile(tileB, tileA)
+			}
 		}
 
 		if c.objectB.GetState() == entities.Dying {
-			t.ObjectToTile(c.objectB).SetObject(nil)
+			tileB.SetObject(nil)
+			if c.objectA.GetState() != entities.Dying {
+				t.MoveEntityFromTileToTile(tileA, tileB)
+			}
 		}
 	}
 
@@ -246,6 +261,18 @@ func (t *TileMap) MoveEntity(tile *Tile, direction Direction) *entities.Object {
 		}
 	}
 	return nil
+}
+
+func (t *TileMap) MoveEntityFromTileToTile(source *Tile, destination *Tile) {
+	if source.IsOccupied() {
+		unit := source.GetObject()
+
+		if destination.GetState() == Unoccupied {
+			source.SetObject(nil)
+			destination.SetObject(unit)
+			unit.SetTargetPos(destination.GetPosition())
+		}
+	}
 }
 
 func (t *TileMap) WorldToTilePos(X, Y int) (int, int, bool) {

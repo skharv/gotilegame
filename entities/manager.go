@@ -26,15 +26,32 @@ func (m *Manager) Init() {
 }
 
 func (m *Manager) Update() {
-	sort.Slice(m.ents, func(i, j int) bool { return m.ents[i].GetDrawLayer() < m.ents[j].GetDrawLayer() })
-
-	for i, e := range m.ents {
+	for _, e := range m.ents {
 		e.Update()
 		if !e.IsAlive() {
 			m.dying = append(m.dying, e)
-			m.ents = append(m.ents[:i], m.ents[i+1:]...)
 		}
 	}
+
+	for _, d := range m.dying {
+		if len(m.ents) <= 1 {
+			m.ents = m.ents[:len(m.ents)-1]
+		} else {
+			length := len(m.ents)
+			lastIndex := length - 1
+			for i, e := range m.ents {
+				if e == d {
+					if i != lastIndex {
+						m.ents[i] = m.ents[lastIndex]
+					}
+					m.ents = m.ents[:lastIndex]
+					break
+				}
+			}
+		}
+	}
+
+	sort.Slice(m.ents, func(i, j int) bool { return m.ents[i].GetDrawLayer() < m.ents[j].GetDrawLayer() })
 }
 
 func (m *Manager) RemoveDead() {
