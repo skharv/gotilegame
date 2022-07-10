@@ -9,6 +9,7 @@ import (
 
 type Player struct {
 	units      []*entities.Object
+	objectUi   []*ui.Unit
 	cursor     *ui.Cursor
 	picker     *ui.Picker
 	controller *Controller
@@ -38,6 +39,21 @@ func (p *Player) Update(tileMap *tilemap.TileMap, entityManager *entities.Manage
 	p.cursor.Update(tileMap)
 	p.picker.Update()
 	p.controller.Update(tileMap)
+	for i, u := range p.objectUi {
+		u.Update()
+		if u.GetHitPoints() <= 0 {
+			if len(p.objectUi) <= 1 {
+				p.objectUi = p.objectUi[:len(p.objectUi)-1]
+			} else {
+				length := len(p.objectUi)
+				lastIndex := length - 1
+				if i != lastIndex {
+					p.objectUi[i] = p.objectUi[lastIndex]
+				}
+				p.objectUi = p.objectUi[:lastIndex]
+			}
+		}
+	}
 
 	if p.cursor.IsAltClicked() && p.cursor.IsVisible() {
 		i, j := p.cursor.GetPosition()
@@ -61,6 +77,9 @@ func (p *Player) Update(tileMap *tilemap.TileMap, entityManager *entities.Manage
 func (p *Player) Draw(screen *ebiten.Image) {
 	p.cursor.Draw(screen)
 	p.picker.Draw(screen)
+	for _, u := range p.objectUi {
+		u.Draw(screen)
+	}
 }
 
 func (p *Player) CreateObject(id int, tile *tilemap.Tile) (*entities.Object, bool) {
@@ -83,6 +102,10 @@ func (p *Player) CreateObject(id int, tile *tilemap.Tile) (*entities.Object, boo
 	tile.SetObject(obj)
 
 	p.units = append(p.units, obj)
+
+	ui := &ui.Unit{}
+	ui.Init(obj.GetData(), obj.GetWorldPos())
+	p.objectUi = append(p.objectUi, ui)
 
 	return obj, true
 }

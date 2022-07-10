@@ -22,7 +22,7 @@ var ImagesFS embed.FS
 // //go:embed audio/*
 var AudioFS embed.FS
 
-// //go:embed fonts/*
+//go:embed fonts/*
 var FontsFS embed.FS
 
 func LoadFileAsImage(Filename string) *ebiten.Image {

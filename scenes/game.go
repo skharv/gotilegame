@@ -72,7 +72,7 @@ func (s *Game) Update(state *GameState, deltaTime float64) error {
 
 func (s *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{126, 158, 153, 255})
-	s.player.Draw(screen)
 	s.tileMap.Draw(screen)
 	s.entityManager.Draw(screen)
+	s.player.Draw(screen)
 }

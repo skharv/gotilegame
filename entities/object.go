@@ -19,7 +19,6 @@ type Object struct {
 	color     *ebiten.ColorM
 	data      *data.Unit
 	state     ObjectState
-	polarity  int
 	shake     bool
 }
 
@@ -38,7 +37,6 @@ func (o *Object) Init() {
 	o.originPos.X = 32
 	o.originPos.Y = 96
 	o.color = &ebiten.ColorM{}
-	o.polarity = 0
 	o.shake = false
 	o.state = Idle
 }
@@ -106,10 +104,6 @@ func (o *Object) SetData(name string, hitpoints, attack, polarity int) {
 	o.data = &data.Unit{Name: name, HitPoints: hitpoints, Attack: attack, Polarity: polarity}
 }
 
-func (o *Object) GetAttackDamage() int {
-	return o.data.Attack
-}
-
 func (o *Object) TakeDamage(attackDamage int) {
 	o.data.HitPoints -= attackDamage
 	if o.data.HitPoints <= 0 {
@@ -117,16 +111,28 @@ func (o *Object) TakeDamage(attackDamage int) {
 	}
 }
 
+func (o *Object) GetAttackDamage() int {
+	return o.data.Attack
+}
+
 func (o *Object) GetPolarity() int {
 	return o.data.Polarity
+}
+
+func (o *Object) GetData() *data.Unit {
+	return o.data
 }
 
 func (o *Object) GetState() ObjectState {
 	return o.state
 }
 
-func (o *Object) GetWorldPos() geom.Vector2[float64] {
-	return o.worldPos
+func (o *Object) GetWorldPos() *geom.Vector2[float64] {
+	return &o.worldPos
+}
+
+func (o *Object) GetSize() geom.Vector2[float64] {
+	return geom.Vector2[float64]{X: float64(o.sprite.Bounds().Dx()), Y: float64(o.sprite.Bounds().Dy())}
 }
 
 func (o *Object) IsAlive() bool {

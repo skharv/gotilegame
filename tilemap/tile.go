@@ -41,7 +41,7 @@ func (t *Tile) GetDrawLayer() int {
 
 func (t *Tile) Update() error {
 	if t.object != nil {
-		if t.worldPos.DistanceTo(t.object.GetWorldPos()) < snapDistance {
+		if t.worldPos.DistanceTo(*t.object.GetWorldPos()) < snapDistance {
 			if t.state == Awaiting {
 				t.register(t.object)
 				t.object.SetState(entities.Idle)
